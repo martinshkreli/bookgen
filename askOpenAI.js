@@ -1,4 +1,4 @@
-const askOpenAI = async function (prompt, role, modelChoice = 'gpt-3.5-turbo', tokens=5000, temp=0.65) {
+const askOpenAI = async function (prompt, role, modelChoice = 'gpt-3.5-turbo', tokens=5000, temp=0.85) {
     let now = new Date();
     // let model = 'gpt-3.5-turbo' // //gpt-4-0314
     let roleContent = "You are an ChatGPT-powered chat bot."

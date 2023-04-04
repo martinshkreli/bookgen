@@ -46,7 +46,8 @@ let state ={
   writingStyle: '',
   writingAdjectives: '',
   rawOutline: '',
-  fullText: []
+  fullText: [],
+  pageSummaries: [],
 }
 
 state.chapters = Math.floor(state.desiredPages / chapterLength);
@@ -57,7 +58,8 @@ async function outlineGenerator(state){
   readline.cursorTo(process.stdout,2,2)
   process.stdout.write(`\x1b[35mGenerating Outline:`); 
   
-  let outline = await askOpenAI(outlinePrompt, 'writer', 'gpt-4-0314', (8000 - (40 + padAmount)), 0.8)
+  let outline = await askOpenAI(outlinePrompt, 'writer', 'gpt-4-0314', (8000 - (40 + padAmount)), 0.9)
+  console.log(outline)
   outline = outline.choices[0].message.content;
   
   //  let templot = outline.replace(/\n/g, '');
@@ -90,7 +92,7 @@ async function statePopulator(state){
     
     let statePopulatorPrompt = `I'm going to give you the outline of a book. From this outline, tell me the ${keyVal}. Use close to ${4097 - (summaryLength + padAmount)} words for this page. Here is the outline: ${state.rawOutline}`;
 
-    let statePopulatorResult = await askOpenAI(statePopulatorPrompt, 'machine', 'gpt-4-0314', (8000 - (summaryLength + padAmount)), 0.8)
+    let statePopulatorResult = await askOpenAI(statePopulatorPrompt, 'machine', 'gpt-4-0314', (8000 - (summaryLength + padAmount)), 0.9)
 
     statePopulatorResult = statePopulatorResult.choices[0].message.content;
 
@@ -106,7 +108,7 @@ async function statePopulator(state){
   let stringLength = countWords(stringToCount);
   console.log(stringLength);
 
-  let chapterSummaryText = await askOpenAI(`You are writing a book with this plot summary: ${state.plotOutline}. The book is ${state.desiredPages} pages long. Write a specific one-page plot summary for each of the ten chapters of the book. Name any unnamed major or minor characters. Use the first few chapters to introduce the characters and set the story. Use the next few chapters for action and character development. Use the last few chapters for dramatic twists in the plot and conclusion. You have ${8000 - (stringLength + padAmount)} tokens (or words) left for the summaries.`, 'writer', 'gpt-4-0314', (8000 - (stringLength + padAmount)), 0.8)
+  let chapterSummaryText = await askOpenAI(`You are writing a book with this plot summary: ${state.plotOutline}. The book is ${state.desiredPages} pages long. Write a specific one-page plot summary for each of the ten chapters of the book. Name any unnamed major or minor characters. Use the first few chapters to introduce the characters and set the story. Use the next few chapters for action and character development. Use the last few chapters for dramatic twists in the plot and conclusion. You have ${8000 - (stringLength + padAmount)} tokens (or words) left for the summaries.`, 'writer', 'gpt-4-0314', (8000 - (stringLength + padAmount)), 0.9)
   
   chapterSummaryText = chapterSummaryText.choices[0].message.content;
   
@@ -122,12 +124,14 @@ async function statePopulator(state){
     let shortSummaryPrompt = `You are writing Chapter ${i+1} of a ${state.chapters} chapter ${state.plotGenre} book. The plot summary for the entire book is ${state.plotOutline}. The summary of this chapter is ${state.chapterSummary[i]}. Write a several paragraph summary of the chapter. Add new subplots, character development, character background, planned dialogue and plot development that you would typically find in such a work. You have 1234 tokens (or words) left for this.}`
 
     let shortSummaryLength = countWords(shortSummaryPrompt);
+    console.log()
+    console.log(shortSummaryLength);
 
-    console.log(shortSummaryLength)
     try {
       let shortSummaryText = ''
       while (shortSummaryText.length < 100) {
-        shortSummaryText = await askOpenAI(`You are writing Chapter ${i+1} of a ${state.chapters} chapter ${state.plotGenre} book. The plot summary for the entire book is ${state.plotOutline}. The summary of this chapter is ${state.chapterSummary[i]}. Write a 4-page summary of the chapter. Add new subplots, character development, character background, planned dialogue and plot development that you would typically find in such a work. You have ${8000 - (shortSummaryLength + padAmount)} tokens (or words) left for this.}`, 'writer', 'gpt-4-0314', (8000 - (shortSummaryLength + padAmount)), 0.8)
+        console.log(`Generating short summary of Chapter ${i+1}:`);
+        shortSummaryText = await askOpenAI(`You are writing Chapter ${i+1} of a ${state.chapters} chapter ${state.plotGenre} book. The plot summary for the entire book is ${state.plotOutline}. The summary of this chapter is ${state.chapterSummary[i]}. Write a 4-page summary of the chapter. Add new subplots, character development, character background, planned dialogue and plot development that you would typically find in such a work. You have ${8000 - (shortSummaryLength + padAmount)} tokens (or words) left for this.}`, 'writer', 'gpt-4-0314', (8000 - (shortSummaryLength + padAmount)), 0.9)
 
         if (!shortSummaryText.choices[0]) {shortSummaryText = 'error'}
         if (!shortSummaryText.choices[0].message) {shortSummaryText = 'error'}
@@ -145,44 +149,76 @@ async function statePopulator(state){
     }
   }
 
-  console.log('entering page generation module');
+  console.log('\nentering page generation module\n');
 
   for (var i=0; i<state.chapters; i++){
     for (var j=0; j<20; j++) {
+
+      let pageToWrite = i*20 + j+1;
+
       let amendment = ""
-      if (j==0) {amendment = "";}
-      if (j !==0 ) {amendment = `Page ${j} reads as follows ${state.fullText[(i*j + j)]} `;}
-      console.log('generating final full text for chapter ', i+1, ' page ', j+1);
+      if (j==0) {amendment = "This is the first page of the chapter.";}
+      if (j == 1) {amendment = `Page 1 of this chapter reads as follows: ${state.fullText[(i*20 + j-1)]}`};
+      if (j == 2) {amendment = `Pages ${j-1} and ${j} read as follows: ${state.fullText[(i*20 + j-2)]}. Page ${j} reads as follows: ${state.fullText[(i*20 + j-1)]}`;}
+      if (j > 2) {
+        amendment = `Pages ${j-2},${j-1} and ${j} read as follows: ${state.fullText[(i*20 + j-3)]} Page ${j-1} reads as follows: ${state.fullText[(i*20 + j-2)]} Page ${j} reads as follows: ${state.fullText[(i*20 + j -1)]}`;
+        let tokenCount = countWords(amendment);
+        console.log('word count for amendment is ', tokenCount, ' tokens: ', parseInt(tokenCount/0.66),10).toFixed(0)
+      }
+      
+      //join the state.sentenceSummaries of all prior pages in the chapter so far
+      let priorPages = '';
+      for (var k=0; k<j; k++) {
+        priorPages = priorPages + state.sentenceSummaries[(i*20 + k)];
+      }
 
-      let pageGenPrompt = `You are a serious author writing page ${j+1} in chapter ${i+1} of a ${state.chapters}-chapter ${state.plotGenre} novel. The plot summary for this chapter is ${state.chapterSummaryLong[i]}. ${amendment} As you are writing, be sure to develop the characters background thoroughly, include dialogue and detailed literary descriptions of the scenery, and develop the plot. Do not mention page or chapter numbers! Do not jump to the end of the plot. The prior page reads as follows: You have 1234 tokens (or words) left for this page.`
-
-      let pageGenLength = countWords(pageGenPrompt);
+      console.log('\nGenerating final full text for chapter ', i+1, ' page ', j+1, '\n');
+      
       let pageGenText = ''
-      try {
-        while (pageGenText.length < 100) {
-          let pageGenText = await askOpenAI(`You are a serious author writing page ${j+1} in chapter ${i+1} of a ${state.chapters}-chapter ${state.plotGenre} novel. The plot summary for this chapter is ${state.chapterSummaryLong[i]}. ${amendment} As you are writing, be sure to develop the characters background thoroughly, include dialogue and detailed literary descriptions of the scenery, and develop the plot. Do not mention page or chapter numbers! Do not jump to the end of the plot. The prior page reads as follows: You have ${8000 - (pageGenLength + padAmount)} tokens (or words) left for this page.`, 'writer', 'gpt-4-0314', 8000 - (pageGenLength + padAmount), 0.8)
+      while (pageGenText.length < 100) {
+        try {
+          let pageGenText = await askOpenAI(`You are an author writing page ${j+1} in chapter ${i+1} of a ${state.chapters}-chapter ${state.plotGenre} novel. The plot summary for this chapter is ${state.chapterSummaryLong[i]}. ${amendment}. Here is a short summary of each prior page of this chapter you've written so far: ${priorPages}. As you continue writing the next page, be sure to develop the characters' background thoroughly, include dialogue and detailed literary descriptions of the scenery, and develop the plot. Do not mention page or chapter numbers! Do not jump to the end of the plot and make sure there is plot continuity. Carefully read the summaries of the prior pages before writing new plot. Make sure you fill an entire page of writing.`, 'writer', 'gpt-4-0314', 1500, 0.9)
           
-          pageGenText = pageGenText.choices[0].message.content;
-          pageGenText = pageGenText.replace(/\n/g, '');
-          state.fullText.push((pageGenText + "\n"));
-        }
-      } catch (err) {
-        console.log(err);
-      }
-        fs.appendFile("story.txt", pageGenText, (err) => {
-          if (err) {
-            throw err;
+          if (!pageGenText.choices[0]) {pageGenText = 'error'}
+          if (!pageGenText.choices[0].message) {pageGenText = 'error'}
+          if (!pageGenText.choices[0].message.content) {pageGenText = 'error'
+          } else {
+            pageGenText = pageGenText.choices[0].message.content;
+            pageGenText = pageGenText.replace(/\n/g, '');
+            state.fullText.push((pageGenText + "\n"));
+            process.stdout.write(`\x1b[36m\n\n\nChapter ${i+1}\n\nPage ${j+1}\n\n ${pageGenText}\n\n`);
+            fs.appendFile(`story${randomGenre}.txt`, pageGenText, (err) => {
+              if (err) {
+                throw err;
+              }
+            });
+            async function generatePageSummary(page) {
+              let goodToGo = false;
+              let pageSummaryText = askOpenAI(`Here is a full page of text. Please summarize it in one, or at MOST, two sentences. ${page}`, 'writer', 'gpt-4-0314', 4000 - (pageGenLength + padAmount), 0.5)
+              while (goodToGo == false) {
+                try {
+                  pageSummaryText = pageSummaryText.choices[0].message.content;
+                  goodToGo = true;
+                } catch (err) {
+                  console.log(err)
+                }
+              }
+              return page;
+            }
+            let pageSummary = await generatePageSummary(pageGenText)
+            state.pageSummary.push(pageSummary);
           }
-        });
-          process.stdout.write(`\x1b[35mhere is the page text: ${pageGenText}`);
+        } catch (err) {
+          console.log(err);
+        }
       }
-
+    }
     let chapterheader = `\n\nChapter ${i+1}\n\n`
-    fs.appendFile("story.txt", chapterheader, (err) => {
-      if (err) {
-        throw err;
-      }
-    });
+    fs.appendFile(`story${randomGenre}.txt`, chapterheader, (err) => {
+    if (err) {
+      throw err;
+    }
+  });
   }
 }
 statePopulator(state);
