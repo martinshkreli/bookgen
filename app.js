@@ -8,6 +8,7 @@ let modelChoice = process.argv[2] || 'gpt4';
 let chapterLength = process.argv[4] || 20;
 let desiredPages = process.argv[3] || 200;
 let padAmount = process.argv[5] || 500;
+
 let models = {
   'gpt35': {
     name: 'gpt-3.5-turbo',
@@ -20,7 +21,12 @@ let models = {
 }
 
 function getGenre() {
-  let genresList = ['Action', 'Adventure', 'Alternative History', 'Apocalyptic', 'Children\'s', 'Comedy', 'Crime', 'Cyberpunk', 'Drama', 'Dystopian', 'Elizabethan', 'Existentialist', 'Fantasy', 'Gothic', 'Historical', 'Horror', 'Legal', 'LGBTQ', 'Magical Realism', 'Mystery', 'Near-future', 'Parable', 'Paranormal', 'Post-Apocalyptic', 'Romance', 'Postmodern', 'Science Fiction', 'Sports', 'Star Trek Fan Fiction', 'Steampunk', 'Superhero', 'Supernatural', 'Teenage', 'Thriller', 'Tragedy', 'Utopian', 'Victorian', 'Western', 'Young Adult'];
+  let genresList = ['Action', 'Adventure', 'Alternative History', 'Apocalyptic', 'Children\'s', 'Comedy', 
+    'Crime', 'Cyberpunk', 'Drama', 'Dystopian', 'Elizabethan', 'Existentialist', 'Fantasy', 'Gothic', 
+    'Historical', 'Horror', 'Legal', 'LGBTQ', 'Magical Realism', 'Mystery', 'Near-future', 'Parable', 
+    'Paranormal', 'Post-Apocalyptic', 'Romance', 'Postmodern', 'Science Fiction', 'Sports', 
+    'Star Trek Fan Fiction', 'Steampunk', 'Superhero', 'Supernatural', 'Teenage', 'Thriller',
+    'Tragedy', 'Utopian', 'Victorian', 'Western', 'Young Adult'];
   console.clear();
   let randomGenre = genresList[Math.floor(Math.random() * genresList.length)];
   readline.cursorTo(process.stdout,1,1)
@@ -173,6 +179,34 @@ async function chapterSummaryArray(state) {
   return state;
 }
 
+const generatePageSummary = async (page, modelChoice) => {
+  while (true) {
+    try {
+      const pageSummaryText = await askOpenAI(`Here is a full page of text. Please summarize it in a few sentences. Text to summarize: ${page}`, 'machine', models[modelChoice].name, (models[modelChoice].tokenLimit - (page.length + padAmount)), 0.5);
+
+      if (pageSummaryText.choices && pageSummaryText.choices[0]) {
+        return pageSummaryText.choices[0].message.content;
+      } else {
+        console.log('Error summarizing:', pageSummaryText)
+      }
+    } catch (err) {
+      console.log(err)
+    }
+  }
+};
+
+const appendToFile = (filename, text) => {
+  return new Promise((resolve, reject) => {
+    fs.appendFile(filename, text, (err) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve();
+      }
+    });
+  });
+};
+
 async function pageGenerator(state) {
 
   console.log('\nEntering Page Generation module.\n');
@@ -186,58 +220,38 @@ async function pageGenerator(state) {
       console.log('\nGenerating final full text for chapter ', i+1, ' page ', j+1, '\n');
 
       let pageGenText = ''
-      let condition = true;
-      while (condition == true) {
+      
+      while (true) {
         try {
-          pageGenText = await askOpenAI(`You are an author writing page ${j+1} in chapter ${i+1} of a ${state.chapters}-chapter ${state.plotGenre} novel. The plot summary for this chapter is ${state.chapterSummaryArray[i]}. ${amendment}. As you continue writing the next page, be sure to develop the characters' background thoroughly, include dialogue and detailed literary descriptions of the scenery, and develop the plot. Do not mention page or chapter numbers! Do not jump to the end of the plot and make sure there is plot continuity. Carefully read the summaries of the prior pages before writing new plot. Make sure you fill an entire page of writing.`, 'writer', models[modelChoice].name, (models[modelChoice].tokenLimit - (state.chapterSummaryArray[i] + amendment)), 0.9)
+          pageGenText = await askOpenAI(`You are an author writing page ${j+1} in chapter ${i+1} of a ${state.chapters}-chapter ${state.plotGenre} novel. \
+          The plot summary for this chapter is ${state.chapterSummaryArray[i]}. ${amendment}. As you continue writing the next page, be sure to develop the \
+          characters' background thoroughly, include dialogue and detailed literary descriptions of the scenery, and develop the plot. Do not mention page \
+          or chapter numbers! Do not jump to the end of the plot and make sure there is plot continuity. Carefully read the summaries of the prior pages \ 
+          before writing new plot. Make sure you fill an entire page of writing.`, 
+          'writer', models[modelChoice].name, (models[modelChoice].tokenLimit - (state.chapterSummaryArray[i] + amendment)), 0.9)
           
           if (!pageGenText.choices) {
             console.log('error in pageGenText')
             console.log(pageGenText)
             pageGenText = 'error'
           }
+
           if (!pageGenText.choices[0]) {pageGenText = 'error'}
           if (!pageGenText.choices[0].message) {pageGenText = 'error'}
+
           if (!pageGenText.choices[0].message.content) {
             pageGenText = 'error'
           } else {
             pageGenText = pageGenText.choices[0].message.content;
             pageGenText = pageGenText.replace(/\n/g, '');
             state.fullText.push((pageGenText + "\n"));
+            
             process.stdout.write(`\x1b[36m\n\n\nChapter ${i+1}\n\nPage ${j+1}\n\n ${pageGenText}\n\n`);
-            let header = `\n\nChapter ${i+1}, Page ${j+1}\n\n`;
-            let textToSave = header + pageGenText;
 
-            fs.appendFile(state.filename, textToSave, (err) => {
-              if (err) {throw err;}
-            });
+            const header = `\n\nChapter ${i + 1}, Page ${j + 1}\n\n`;
+            await appendToFile(state.filename, header + pageGenText);
 
-            condition = false;
-
-            async function generatePageSummary(page) {
-              let condition = true;
-              while (condition) {
-                try {
-                  let pageSummaryText = await askOpenAI(`Here is a full page of text. Please summarize it in a few sentences. Text to summarize: ${page}`, 'machine', models[modelChoice].name, (models[modelChoice].tokenLimit - (page.length + padAmount)), 0.5);
-                  
-                  if (!pageSummaryText.choices) {
-                    console.log(pageSummaryText)
-                    pageSummaryText = 'error'
-                  }
-                  if (!pageSummaryText.choices[0]) {
-                    console.log(pageSummaryText)
-                    pageSummaryText = 'error'
-                  } else {
-                    pageSummaryText = pageSummaryText.choices[0].message.content;
-                    condition = false;
-                  }
-                } catch (err) {
-                  console.log(err)
-                }
-              }
-              return page;
-            }
-            let pageSummary = await generatePageSummary(pageGenText)
+            let pageSummary = await generatePageSummary(pageGenText, modelChoice)
             state.pageSummaries.push(pageSummary);
           }
         } catch (err) {
