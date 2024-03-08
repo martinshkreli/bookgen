@@ -3,9 +3,11 @@ import Link from 'next/link'
 
 export default function Progress({currentStep}) {
   const steps = [
-    { code: 1, id: 'Step 1', name: 'Pick Genre', href: '#', status: getStatus(1, currentStep) },
-    { code: 2, id: 'Step 2', name: 'Generate Outline', href: '#', status: getStatus(2, currentStep) },
-    { code: 3, id: 'Step 3', name: 'Story Parameters', href: '#', status: getStatus(3, currentStep) },
+    { id: 'Step 1', name: 'Pick Genre', href: '#', status: getStatus(1, currentStep) },
+    { id: 'Step 2', name: 'Generate Outline', href: '#', status: getStatus(2, currentStep) },
+    { id: 'Step 3', name: 'Story Parameters', href: '#', status: getStatus(3, currentStep) },
+    { id: 'Step 4', name: 'Plot Summary', href: '#', status: getStatus(4, currentStep) },
+    { id: 'Step 5', name: 'Plot Summary Array', href: '#', status: getStatus(5, currentStep) },
   ]
 
   function getStatus(thisStep, currentStep) {

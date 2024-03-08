@@ -17,7 +17,8 @@ export function defaultAppState(config) {
   }
 
   return {
-    model: models[config?.modelChoice], 
+    model: models[config?.modelChoice],
+    padAmount: padAmount,
     desiredPages: desiredPages,
     chapters: desiredPages / chapterLength,
     plotGenre: '',
