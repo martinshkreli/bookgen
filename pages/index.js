@@ -97,7 +97,7 @@ export default function Page({config}) {
       setAppState(thisState);
       setAppCurrentStep(2);
     }).catch((err) => {
-      console.log("Something broke in step 1", err);
+      console.warn("Something broke in step 1", err);
       setThinking(false);
       setGenerating(false);
     })
@@ -124,7 +124,7 @@ export default function Page({config}) {
         setAppState(thisState);
         thisOutput.push(res.split("\n"));
       }).catch((err) => {
-        console.log("Something broke in step 2", key, err);
+        console.warn("Something broke in step 2", key, err);
         setThinking(false);
         setGenerating(false);
       });
@@ -146,7 +146,7 @@ export default function Page({config}) {
       setAppState(thisState);
       setAppCurrentStep(4);
     }).catch((err) => {
-      console.log("Something broke in step 3", err);
+      console.warn("Something broke in step 3", err);
       setThinking(false);
       setGenerating(false);
     })
@@ -160,13 +160,13 @@ export default function Page({config}) {
       console.log("5 RESULT", res);
       thisState.chapterSummaryArray = res;
       for(var x in res) {
-        thisOutput.push(res[x]);
+        thisOutput.push(res[x].split("\n"));
       }
       setTextOutput(thisOutput);
       setAppState(thisState);
       setAppCurrentStep(5);
     }).catch((err) => {
-      console.log("Something broke in step 4", err);
+      console.warn("Something broke in step 4", err);
       setThinking(false);
       setGenerating(false);
     })

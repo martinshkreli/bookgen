@@ -88,8 +88,6 @@ export async function plotSummaryGenerator(state) {
 export async function plotChapterArrayGenerator(state) {
   let chapterSummaryArray = [];
   for (var i=0; i < state.chapters; i++){
-    console.log(`Generating chapter summaries to populate chapterSummaryArray.`)
-
     let shortSummaryText = ''
     console.log(`Generating short summary of Chapter ${i+1}:`);
 
@@ -109,8 +107,8 @@ export async function plotChapterArrayGenerator(state) {
         })
     }).then((res) => res.json())
     .then((res) => {
-      console.log(`chapter summary array result ${i + 1}`, res.choices?.[0]?.message?.content?.replace(/\n/g, ''));
-        shortSummaryText = res.choices?.[0]?.message?.content?.replace(/\n/g, '') || "error";
+        console.log(`chapter summary array result ${i + 1}`, res.choices?.[0]?.message?.content);
+        shortSummaryText = res.choices?.[0]?.message?.content || "error";
         chapterSummaryArray.push(shortSummaryText);
     }).catch((err) =>{
       return err;
