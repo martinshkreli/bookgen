@@ -75,6 +75,7 @@ async function main() {
   }
   state.plotGenre = getGenre();
   state.filename = `${state.plotGenre}${modelChoice}${Math.round(Math.random()*100)}.txt`;
+  process.stdout.write(`\x1b[36mSaving to file: ${state.filename}\n`);
   state.rawOutline = await outlineGenerator(state);
   state = await statePopulator(state);
   state.chapterByChapterSummaryString = await plotSummaryByChapter(state);
@@ -195,6 +196,7 @@ const generatePageSummary = async (page, modelChoice) => {
   }
 };
 
+// Note: on the frontend interface this will need to function as a download
 const appendToFile = (filename, text) => {
   return new Promise((resolve, reject) => {
     fs.appendFile(filename, text, (err) => {

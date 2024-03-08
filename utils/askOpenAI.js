@@ -1,6 +1,8 @@
 const askOpenAI = async function (prompt, role, modelChoice = 'gpt-3.5-turbo', tokens=5000, temp=0.85) {
     let now = new Date();
     // let model = 'gpt-3.5-turbo' // //gpt-4-0314
+    console.log("%%%%%%% ASKING OPEN AI", process.env.API_KEY);
+
     let roleContent = "You are an ChatGPT-powered chat bot."
     
     if (role == 'machine') {
@@ -16,6 +18,8 @@ const askOpenAI = async function (prompt, role, modelChoice = 'gpt-3.5-turbo', t
             method: 'POST',
             'headers': {
                 'Content-Type': 'application/json',
+
+                // TODO: Figure out why the f this isn't passing from process.env
                 'Authorization': `Bearer ${process.env.API_KEY}`,
             },
             'body': JSON.stringify({
