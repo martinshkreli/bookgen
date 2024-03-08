@@ -1,5 +1,3 @@
-import {askOpenAI} from '/utils/askOpenAI.js';
-
 export function getGenre() {
   let genresList = ['Action', 'Adventure', 'Alternative History', 'Apocalyptic', 'Children\'s', 'Comedy', 
     'Crime', 'Cyberpunk', 'Drama', 'Dystopian', 'Elizabethan', 'Existentialist', 'Fantasy', 'Gothic', 
@@ -19,7 +17,21 @@ export async function outlineGenerator(state){
   //readline.cursorTo(process.stdout,2,2)
   //process.stdout.write(`\x1b[36mGenerating Outline:\n`); 
   
-  let outline = await askOpenAI(outlinePrompt, 'writer', state.model.name, (state.model.tokenLimit - (40 + state.padAmount)), 0.9)
+  let outline = await fetch("/api/askOpenAI", {
+    method: 'POST',
+    'headers': {
+      'Content-Type': 'application/json',
+    },
+    'body': JSON.stringify({
+      prompt: outlinePrompt, 
+      role: 'writer',
+      modelChoice: state.model.name, 
+      tokens: (state.model.tokenLimit - (40 + state.padAmount)),
+      temp: 0.9
+      })
+  }).then((res) => {
+    return res;
+  });
 
   outline = outline.choices[0].message.content;
   

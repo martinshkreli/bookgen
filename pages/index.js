@@ -22,12 +22,6 @@ export default function Page({config}) {
   const [generating, setGenerating] = useState(false);
   const [appState, setAppState] = useState(defaultAppState(config))
 
-  console.log("APP STATE",  appState);
-
-  useEffect(() => {
-    //GET THE GENRE!
-  }, []);
-
   async function generateStory() {
     setGenerating(true);
     setThinking(true);
@@ -64,33 +58,33 @@ export default function Page({config}) {
       setGenerating(false);
     }
 
-    // Generate each hash map value
-    let itemsToPopulateHashMap = {
-      'plotOutline': 'plot',
-      'mainCharacters': 'main characters list',
-      'minorCharacters': 'minor characters list',
-      'plotSettings': 'setting',
-      'writingStyle': 'writing style',
-      'writingAdjectives': 'writing adjectives list'
-    }
+    // // Generate each hash map value
+    // let itemsToPopulateHashMap = {
+    //   'plotOutline': 'plot',
+    //   'mainCharacters': 'main characters list',
+    //   'minorCharacters': 'minor characters list',
+    //   'plotSettings': 'setting',
+    //   'writingStyle': 'writing style',
+    //   'writingAdjectives': 'writing adjectives list'
+    // }
 
-    setThinking(true);
+    // setThinking(true);
 
-    try {
-      for (const [key, keyVal] of Object.entries(itemsToPopulateHashMap)) {
-        const stateItem = await statePopulator(thisState, keyVal).then((res) => {
-          console.log("THE RESULT", res);
-          thisState[key] = res;
-          setAppState(thisState);
-          // We're gonna split this cause otherwise we need to use dangerouslySetInnerHTML
-          freshOutput.push(res.split("\n"));
-          setTextOutput(freshOutput);
-        });
-      }
-    } catch {
-      setThinking(false);
-      setGenerating(false);
-    }
+    // try {
+    //   for (const [key, keyVal] of Object.entries(itemsToPopulateHashMap)) {
+    //     const stateItem = await statePopulator(thisState, keyVal).then((res) => {
+    //       console.log("THE RESULT", res);
+    //       thisState[key] = res;
+    //       setAppState(thisState);
+    //       // We're gonna split this cause otherwise we need to use dangerouslySetInnerHTML
+    //       freshOutput.push(res.split("\n"));
+    //       setTextOutput(freshOutput);
+    //     });
+    //   }
+    // } catch {
+    //   setThinking(false);
+    //   setGenerating(false);
+    // }
 
     setThinking(false);
 
