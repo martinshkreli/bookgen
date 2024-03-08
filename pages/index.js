@@ -1,4 +1,5 @@
 import Header from '@components/Header'
+import Progress from '@components/Progress'
 import {useState, useEffect} from 'react';
 import { useRouter } from "next/router";
 import {getGenre, outlineGenerator, statePopulator} from '/utils/serverSide.js';
@@ -21,8 +22,52 @@ export default function Page({config}) {
   const [thinking, setThinking] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [appState, setAppState] = useState(defaultAppState(config))
+  const [appCurrentStep, setAppCurrentStep] = useState(0);
 
-  async function generateStory() {
+  function formatDownload(output) {
+    let string = "";
+    for(var a = 0; a < output.length; a++) {
+      if(Array.isArray(output[a]) === false) {
+        string += output[a] + "\n";
+      } else {
+        string += "\n" + output[a].join("\n") + "\n";
+      }
+    }
+    return string;
+  }
+
+  /* If we chain a bunch of awaits, the frontend wont update while 
+     backend is thinking. This is a workaround so the state changes
+     and a useEffect triggers the next step. This has a side effect
+     of also updating the frontend after each step.
+  */
+
+  useEffect(() => {
+    console.log("App state has changed, check what to do");
+    console.log("appState", appCurrentStep);
+    // if App state is 0, 
+    switch(true) {
+      case appCurrentStep === 0: 
+        console.log("APP STATE IS ZERO. NOTHING HAS STARTED");
+        break;
+      case appCurrentStep === 1: 
+        generateOutline();
+        break;
+      case appCurrentStep === 2:
+        generateHashMap();
+        break;
+      case appCurrentStep === 3:
+        // Current finishing point
+        setThinking(false);
+        setGenerating(false);
+        break;
+      default:
+        console.log("Default state something went wrong");
+        break;
+    }
+  }, [appCurrentStep]);
+
+  async function generateOutline() {
     setGenerating(true);
     setThinking(true);
 
@@ -41,12 +86,11 @@ export default function Page({config}) {
     setThinking(true);
     try {
       const awaitOutline = await outlineGenerator(thisState).then((res) => {
-        console.log("THE RESULT", res);
         setThinking(false);
 
         // Update the state
         thisState.rawOutline = res;
-        setAppState(thisState);
+        setAppCurrentStep(2);
         
         // We're gonna split this cause otherwise we need to use dangerouslySetInnerHTML
         freshOutput.push(res.split("\n"));
@@ -57,51 +101,41 @@ export default function Page({config}) {
       setThinking(false);
       setGenerating(false);
     }
-
-    // // Generate each hash map value
-    // let itemsToPopulateHashMap = {
-    //   'plotOutline': 'plot',
-    //   'mainCharacters': 'main characters list',
-    //   'minorCharacters': 'minor characters list',
-    //   'plotSettings': 'setting',
-    //   'writingStyle': 'writing style',
-    //   'writingAdjectives': 'writing adjectives list'
-    // }
-
-    // setThinking(true);
-
-    // try {
-    //   for (const [key, keyVal] of Object.entries(itemsToPopulateHashMap)) {
-    //     const stateItem = await statePopulator(thisState, keyVal).then((res) => {
-    //       console.log("THE RESULT", res);
-    //       thisState[key] = res;
-    //       setAppState(thisState);
-    //       // We're gonna split this cause otherwise we need to use dangerouslySetInnerHTML
-    //       freshOutput.push(res.split("\n"));
-    //       setTextOutput(freshOutput);
-    //     });
-    //   }
-    // } catch {
-    //   setThinking(false);
-    //   setGenerating(false);
-    // }
-
-    setThinking(false);
-
-    // End of the road
-    setGenerating(false);
   }
 
-  function formatDownload(output) {
-    let string = "";
-    for(var a = 0; a < output.length; a++) {
-      if(Array.isArray(output[a]) === false) {
-        string += output[a] + "\n";
-      } else {
-        string += "\n" + output[a].join("\n") + "\n";
-      }
+  async function generateHashMap() {
+    setThinking(true);
+    setGenerating(true);
+
+    // Generate each hash map value
+    let itemsToPopulateHashMap = {
+      'plotOutline': 'plot',
+      'mainCharacters': 'main characters list',
+      'minorCharacters': 'minor characters list',
+      'plotSettings': 'setting',
+      'writingStyle': 'writing style',
+      'writingAdjectives': 'writing adjectives list'
     }
-    return string;
+    let thisState = appState;
+    let thisOutput = textOutput;
+
+    try {
+      for (const [key, keyVal] of Object.entries(itemsToPopulateHashMap)) {
+        const stateItem = await statePopulator(thisState, keyVal).then((res) => {
+          console.log("THE RESULT", res);
+          thisState[key] = res;
+          setAppState(thisState);
+          // We're gonna split this cause otherwise we need to use dangerouslySetInnerHTML
+          thisOutput.push(res.split("\n"));
+          setTextOutput(thisOutput);
+        });
+      }
+      // Finished:
+      setAppCurrentStep(3);
+    } catch {
+      setThinking(false);
+      setGenerating(false);
+    }
   }
 
   return (
@@ -111,8 +145,8 @@ export default function Page({config}) {
         <main className="-mt-32">
           <div className="mx-auto max-w-7xl px-4 pb-12 sm:px-6 lg:px-8">
             <div className="rounded-lg bg-white px-5 py-6 shadow sm:px-6">
-
-              {!generating && <button className="p-3 m-3 outline" onClick={() => generateStory()}>Generate</button>}
+              {appCurrentStep > 0 && <Progress currentStep={appCurrentStep}/>}
+              {!generating && <button className="p-3 m-3 outline" onClick={() => setAppCurrentStep(1)}>Generate</button>}
               {!thinking && !generating && textOutput.length > 1 && <button className="p-3 m-3 outline" onClick={() => download(formatDownload(textOutput), "BookGen.txt", "text/plain")}>Download story</button>}
               {textOutput && textOutput.map((output, a) => (
                 <div className="mb-6" key={`output-${a}`}>

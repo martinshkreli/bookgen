@@ -37,11 +37,22 @@ export async function statePopulator(state, keyVal) {
     console.log("FIRING STATE POPULATOR", state, keyVal);
 
     let statePopulatorPrompt = `I'm going to give you the outline of a book. From this outline, tell me the ${keyVal}. Use close to ${state.model.tokenLimit - (500 + state.rawOutline + state.padAmount)} words for this page. Here is the outline: ${state.rawOutline}`;
-
-    let statePopulatorResult = await askOpenAI(statePopulatorPrompt, 'machine', state.model.name, (state.model.tokenLimit - (state.rawOutline.length + state.padAmount)), 0.9)
-
-    console.log("POPULATOR RESULT" + statePopulatorResult)
-    statePopulatorResult = statePopulatorResult.choices[0].message.content;
-
-    return statePopulatorResult;
+    return await fetch("/api/askOpenAI", {
+      method: 'POST',
+      'headers': {
+        'Content-Type': 'application/json',
+      },
+      'body': JSON.stringify({
+        prompt: statePopulatorPrompt, 
+        role: 'machine',
+        modelChoice: state.model.name, 
+        tokens: (state.model.tokenLimit - (state.rawOutline.length + state.padAmount)),
+        temp: 0.9
+        })
+    }).then((res) => res.json())
+    .then((res) => {
+      return res.choices[0].message.content;
+    }).catch((err) =>{
+      return err;
+    })
 }
