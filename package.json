@@ -1,7 +1,30 @@
 {
+  "name": "bookgen",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "export": "next export",
+    "start": "next build"
+  },
   "dependencies": {
+    "@headlessui/react": "^1.7.18",
+    "@heroicons/react": "^2.1.1",
+    "cypress": "^13.6.6",
     "dotenv": "^16.0.3",
+    "downloadjs": "^1.4.7",
+    "next": "^14.1.1",
     "openai": "^3.1.0",
-    "request": "^2.88.2"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "request": "^2.88.2",
+    "socket.io": "^4.7.4",
+    "socket.io-client": "^4.7.4"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.18",
+    "postcss": "^8.4.35",
+    "tailwindcss": "^3.4.1"
   }
 }
