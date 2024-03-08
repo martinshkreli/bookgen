@@ -13,11 +13,7 @@ export function getGenre() {
 
 export async function outlineGenerator(state){
   let outlinePrompt =  `Generate the outline of an original ${state.desiredPages}-page ${state.plotGenre} fiction book. Imagine and then carefully label the following: a detailed plot, characters with names, settings and writing style. You have ${state.model.tokenLimit - (40 + state.padAmount)} words remaining to write the outline. It is CRITICAL you as many words as possible.`;
-
-  //readline.cursorTo(process.stdout,2,2)
-  //process.stdout.write(`\x1b[36mGenerating Outline:\n`); 
-  
-  let outline = await fetch("/api/askOpenAI", {
+  return await fetch("/api/askOpenAI", {
     method: 'POST',
     'headers': {
       'Content-Type': 'application/json',
@@ -29,17 +25,12 @@ export async function outlineGenerator(state){
       tokens: (state.model.tokenLimit - (40 + state.padAmount)),
       temp: 0.9
       })
-  }).then((res) => {
-    return res;
-  });
-
-  outline = outline.choices[0].message.content;
-  
-  // readline.cursorTo(process.stdout,3,5);
-  // process.stdout.write(`\x1b[36mHere is the raw outline:\n`);
-  // readline.cursorTo(process.stdout,4,6);
-  // process.stdout.write(`\x1b[36m${outline}`);
-  return outline;
+  }).then((res) => res.json())
+  .then((res) => {
+    return res.choices[0].message.content;
+  }).catch((err) =>{
+    return err;
+  })
 }
 
 export async function statePopulator(state, keyVal) {

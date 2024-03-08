@@ -1,4 +1,4 @@
-export default function handler(req, res) {
+export default async function handler(req, res) {
   const prompt = req.body.prompt;
   const role = req.body.role;
   const modelChoice = req.body.modelChoice;
@@ -18,8 +18,8 @@ export default function handler(req, res) {
       roleContent = "You are a professional fiction writer who is a best-selling author. You use all of the rhetorical devices you know to write a compelling book."
   }
 
-  return new Promise(function(resolve, reject) {
-      fetch('https://api.openai.com/v1/chat/completions', {
+  
+  const returnData = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           'headers': {
               'Content-Type': 'application/json',
@@ -38,15 +38,14 @@ export default function handler(req, res) {
           const data = await response.text();
           try {
               if (JSON.parse(data) && !!data) {
-                  resolve (JSON.parse(data));
                   return JSON.parse(data);
               } else {
-                  resolve ('error')
                   return 'error';
               }
           } catch(e) {
               console.log(data);
               console.log(e);
+              return 'error';
           }
       })
       .then(async data => {
@@ -54,16 +53,17 @@ export default function handler(req, res) {
           try {
               let elapsed = new Date() - now;
               console.log('\nOpenAI response time: ' + elapsed + 'ms\n')
-              resolve (data)
               return data;
           } catch(e) {
               console.log(e);
-              resolve (e);
               return e;
           }
       }).catch((err) => {
           console.log("You fucked up");
           return err;
       })
-  });
+
+  return Promise.resolve(returnData).then((data) => {
+    return res.status(200).json(data)
+  })
 }
